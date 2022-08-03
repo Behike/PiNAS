@@ -1,6 +1,8 @@
-# Pi HTPC Download Box
+# Pi HTPC Download Box Updated
 
-Sonarr / Radarr / Bazarr / Jackett / NZBGet / Transmission / Deluge / NordVPN / Plex
+> 📝 **This is a work in progress which is not properly working for now**
+
+Sonarr / Radarr / Bazarr / Prowlarr / Deluge / NordVPN / Plex
 
 TV shows and movies download, sort, with the desired quality and subtitles, behind a VPN (optional), ready to watch, in a beautiful media player.
 All automated.
@@ -11,14 +13,13 @@ All automated.
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
     - [Monitor TV shows/movies with Sonarr and Radarr](#overview)
-    - [Search for releases automatically with Usenet and torrent indexers](#overview)
-    - [Handle bittorrent and usenet downloads with Deluge and NZBGet](#overview)
+    - [Search for releases automatically with torrent indexers](#overview)
+    - [Handle bittorrent and usenet downloads with Deluge](#overview)
     - [Organize libraries and play videos with Plex](#overview)
   - [Hardware configuration](#hardware-configuration)
   - [Software stack](#software-stack)
   - [Installation guide](#installation-guide)
     - [Introduction](#introduction)
-    - [Hypriot OS](#hypriot-oS)
     - [Setup NTFS folder](#setup-ntfs-folder)
       - [Create NTFS folder on NAS](create-ntfs-folder-on-NAS)
       - [Mount NTFS folder on Pi](mount-ntfs-folder-on-Pi)
@@ -31,13 +32,11 @@ All automated.
     - [Setup a VPN Container](#setup-a-vpn-container)
       - [Introduction](#introduction)
       - [Docker container](#docker-container)
-    - [Setup Jackett](#setup-jackett)
-    - [Setup NZBGet](#setup-nzbget)
+    - [Setup Prowlarr](#setup-prowlarr)
     - [Setup Plex](#setup-plex)
     - [Setup Sonarr](#setup-sonarr)
     - [Setup Radarr](#setup-radarr)
     - [Setup Bazarr](#setup-bazarr)
-      - [Remotly Add Movies Using trakt.tv And List](#remotly-add-movies-using-trakttv-and-list)
     - [Reduce Pi Power Consumption](#reduce-pi-power-consumption)
       - [Disable HDMI](#disable-hdmi)
       - [Turn Off LEDs](#turn-off-leds)
@@ -52,24 +51,28 @@ All automated.
 
 [See original instructions](https://github.com/sebgl/htpc-download-box#overview)
 
+[Fork from marchah's fork](https://github.com/marchah/pi-htpc-download-box)
+
 ## Hardware configuration
 
-I have a Synology DS2013j but it's too old to run sonarr/jackett/radarr/plex properly. The movies and tvshows will be stored in a NTFS folder on my nas, the softwares configurations will be stored in the PI. SQLlite doesn't like to be in a network folder, give a lot of `database locked` errors.
+Other HTPC Download Box projects have often been tested with multiple devices such as Synology NAS and Raspberry Pi 3/3B/3B+.
 
-I use a Pi 3B but I have added the instructions for older Pi like the 1B and tested it but wasn't able to make it work.
+I am using a Raspberry Pi 4 with Raspberry Pi OS 64 bits, hence I cannot assure you that everything will be working properly on other devices.
 
-![Error](img/raspberry_pi_1b_failure.png)
+<details>
+<summary>Software stack</summary>
 
-## Software stack
+>⚠️ **TO UPDATE**
 
 ![Architecture Diagram](img/architecture_diagram.png)
+
+</details>
 
 **Downloaders**:
 
 - [Transmission](https://transmissionbt.com/): torrent downloader with a web UI
 - [Deluge](http://deluge-torrent.org/): torrent downloader with a web UI
-- [NZBGet](https://nzbget.net): usenet downloader with a web UI
-- [Jackett](https://github.com/Jackett/Jackett): API to search torrents from multiple indexers
+- [Prowlarr](https://github.com/Prowlarr/Prowlarr): API to search torrents from multiple indexers
 - [Bazarr](https://www.bazarr.media/): A companion tool for Radarr and Sonarr which will automatically pull subtitles for all of your TV and movie downloads.
 
 **Download orchestration**:
@@ -100,18 +103,51 @@ The stack is not really plug-and-play. You'll see that manual human configuratio
 Optional steps described below that you may wish to skip:
 
 - Using a VPN server for Transmission and/or Deluge incoming/outgoing traffic.
-- Using newsgroups (Usenet): you can skip NZBGet installation and all related Sonarr/Radarr indexers configuration if you wish to use bittorrent only.
 
-### Hypriot OS
+### Setup OS and docker
+I am using Raspberry Pi OS 64 bits, which is available for Pi 3 and 4 only, but most (if not all) instructions apply for any Ubuntu/Debian distribution.
 
-I recently switched to [Hypriot OS](https://blog.hypriot.com/), it come with docker preinstall and support all the Pi versions.
+<details>
+<summary>Docker and docker-compose installation</summary>
 
-Default ssh username/password is `pirate/hypriot`.
-
+#### Docker installation
+1. Fully update the OS
 ```
-sudo apt-get update
-sudo apt-get install nfs-common
+sudo apt-get update && sudo apt-get upgrade
 ```
+2. Download and execute Docker installation script
+```
+curl -fsSL https://get.docker.com -o get-docker.sh
+
+sudo sh get-docker.sh
+```
+3. Add your user to the docker group
+```
+sudo usermod -aG docker ${USER}
+```
+4. Restart your session:
+```
+sudo su - ${USER}
+```
+5. Test if docker is successfully installed
+```
+docker run hello-world
+```
+6. [OPTIONAL] Automatically start dockers that have a restart policy set to "unless-stopped" or "always"
+```
+‍sudo systemctl to enable Docker
+```
+
+#### Docker-compose installation
+1. Install all needed python libraries
+```
+sudo apt-get install python3-distutils python3-dev libffi-dev libssl-dev python3 python3-pip
+```
+2. Install docker-compose
+```
+‍sudo pip3 install docker-compose
+```
+</details>
 
 ### Setup environment variables
 
@@ -136,18 +172,22 @@ ROOT=/media
 # The directory where configuration will be stored.
 CONFIG=/config
 #NordVPN informations
-VPN_USER=usero@email.com
-VPN_PASSWORD=password
-VPN_COUNTRY=CA
+PRIVATE_KEY=XXXXXXXXX # See https://github.com/bubuntux/nordlynx
 ```
 
-### Setup NAS
+>⚠️ **TO UPDATE**
+<details>
+<summary>Setup NAS</summary>
 
 #### Create NTFS folder on NAS
 
 This is the instructions for a Synology but should be pretty much the same for any NAS.
 
 [Instructions](https://www.synology.com/en-global/knowledgebase/DSM/tutorial/File_Sharing/How_to_access_files_on_Synology_NAS_within_the_local_network_NFS)
+
+```
+sudo apt-get install nfs-common
+```
 
 #### Mount NTFS folder on Pi
 
@@ -166,6 +206,7 @@ Re mount
 ```
 sudo mount -a
 ```
+</details>
 
 ### Setup Yacht
 
@@ -275,7 +316,7 @@ deluge:
     - TZ=${TZ} # timezone, defined in .env
   volumes:
     - ${ROOT}/downloads:/downloads # downloads folder
-    - ${CONFIG}/config/deluge:/config # config files
+    - ${CONFIG}/deluge:/config # config files
 ```
 
 Things to notice:
