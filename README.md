@@ -133,9 +133,10 @@ sudo su - ${USER}
 ```
 docker run hello-world
 ```
-6. [OPTIONAL] Automatically start dockers that have a restart policy set to "unless-stopped" or "always"
+6. Automatically start dockers that have a restart policy set to "unless-stopped" or "always"
+> ⚠️ Avoid enabling it until everything is working properly, else you are going to have some difficulties for quickly restarting your dockers for testing
 ```
-‍sudo systemctl to enable Docker
+‍sudo systemctl enable docker
 ```
 
 #### Docker-compose installation
@@ -418,13 +419,19 @@ Get the torrent magnet link there, put it in Transmission and/or Deluge, wait a 
 
 [See original instructions](https://github.com/sebgl/htpc-download-box#setup-jackett)
 
-### Setup NZBGet
-
-Uncomment container instructions in `docker.compose.yml`
-
-[See original instructions](https://github.com/sebgl/htpc-download-box#setup-nzbget)
-
 ### Setup Plex
+
+For configuration on a distant host (ie. from your computer to a RPi in our case), use SSH Tunneling for the initial configuration.
+[See Plex official documentation](https://support.plex.tv/articles/200288586-installation/#toc-2)
+
+Also, because the official Plex Docker image is not made for ARM devices, we first need to clone the source and manually build it for our version.
+
+[See Plex instructions](https://github.com/plexinc/pms-docker#using-docker-compose-on-arm-devices)
+
+If you are using a Raspberry Pi 4 with a 64 bits OS, use *arm64* instead of *armv7*. If you are not sure what architecture you have use:
+```
+dpkg --print-architecture 
+```
 
 [See original instructions](https://github.com/sebgl/htpc-download-box#setup-plex)
 
@@ -521,11 +528,4 @@ df -h
 ```
 
 ## TODO
-
-1. When Pi restart the env variables are not set anymore and with the container auto restart it's create issues (downloaded works, did VPN was on?)
-1. Transmission seed config back to default after restart (seem to works now but not for `enable blocklist`)
-1. Investigate why mount NTFS folder not working on startup (HDMI is off)
-1. `Reduce Power Consumption` not working on startup
-1. Transmission put completed download inside `complete/admin/torrent-folder-name`
-1. For `fstab` what's diff with `auto,_netdev,nofaill`
-1. Check why not working on Pi 1B+ (will never do it ...)
+1. Add instructions for Docker secrets for env variables
